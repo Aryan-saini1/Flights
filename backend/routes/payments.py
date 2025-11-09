@@ -27,10 +27,21 @@ def make_payment():
     try:
         conn = get_db_connection()
         with conn.cursor() as cursor:
-            cursor.execute("INSERT INTO payments (booking_id, amount, payment_method, status) VALUES (%s, %s, %s, %s)",
+            # Insert payment
+            cursor.execute("INSERT INTO payments (booking_id, amount, payment_method, status, created_at) VALUES (%s, %s, %s, %s, NOW())",
                            (booking_id, amount, payment_method, status))
+            payment_id = cursor.lastrowid
+            
+            # Update booking status to CONFIRMED if payment is successful
+            if status == 'SUCCESS':
+                cursor.execute("UPDATE bookings SET status = 'CONFIRMED' WHERE booking_id = %s", (booking_id,))
+            
             conn.commit()
-        return jsonify({'message': 'Payment successful'}), 201
+            
+            # Fetch the created payment
+            cursor.execute("SELECT * FROM payments WHERE payment_id = %s", (payment_id,))
+            payment = cursor.fetchone()
+        return jsonify({'message': 'Payment successful', 'payment': payment}), 201
     except Exception as e:
         return jsonify({'error': str(e)}), 400
     finally:

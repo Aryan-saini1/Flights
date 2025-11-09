@@ -15,9 +15,9 @@ def register():
         email = data.get('email')
         password = data.get('password')
         phone = data.get('phone')
-        
-        if not all([name, email, password, phone]):
-            return jsonify({"error": "All fields are required"}), 400
+
+        if not all([name, email, password]):
+            return jsonify({"error": "Name, email and password are required"}), 400
             
         # Hash the password
         password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
@@ -49,13 +49,13 @@ def register():
         
         # Create response
         user_data = {
-            "user_id": user[0],
-            "name": user[1],
-            "email": user[2],
-            "phone": user[3],
-            "created_at": user[4].isoformat() if user[4] else None
+            "user_id": user['user_id'],
+            "name": user['name'],
+            "email": user['email'],
+            "phone": user['phone'],
+            "created_at": user['created_at'].isoformat() if user['created_at'] else None
         }
-        
+
         return jsonify({"message": "User registered successfully", "user": user_data}), 201
         
     except Exception as e:
@@ -83,26 +83,24 @@ def login():
         
         if not user:
             return jsonify({"error": "Invalid email or password"}), 401
-            
+
         # Check password
-        if bcrypt.checkpw(password.encode('utf-8'), user[3].encode('utf-8')):
+        if bcrypt.checkpw(password.encode('utf-8'), user['password_hash'].encode('utf-8')):
             # Generate JWT token
             secret_key = os.environ.get('SECRET_KEY', 'supersecretkey')
             token = jwt.encode({
-                'user_id': user[0],
-                'name': user[1],
-                'email': user[2],
+                'user_id': user['user_id'],
+                'name': user['name'],
+                'email': user['email'],
                 'exp': datetime.datetime.utcnow() + datetime.timedelta(days=1)
             }, secret_key, algorithm='HS256')
-            
+
             return jsonify({
                 "message": "Login successful",
                 "token": token,
-                "user": {
-                    "user_id": user[0],
-                    "name": user[1],
-                    "email": user[2]
-                }
+                "user_id": user['user_id'],
+                "name": user['name'],
+                "email": user['email']
             }), 200
         else:
             return jsonify({"error": "Invalid email or password"}), 401
@@ -138,16 +136,16 @@ def get_profile():
             
             if not user:
                 return jsonify({"error": "User not found"}), 404
-                
+
             # Create response
             user_data = {
-                "user_id": user[0],
-                "name": user[1],
-                "email": user[2],
-                "phone": user[3],
-                "created_at": user[4].isoformat() if user[4] else None
+                "user_id": user['user_id'],
+                "name": user['name'],
+                "email": user['email'],
+                "phone": user['phone'],
+                "created_at": user['created_at'].isoformat() if user['created_at'] else None
             }
-            
+
             return jsonify({"user": user_data}), 200
             
         except jwt.ExpiredSignatureError:

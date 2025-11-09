@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8000/api';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
 
 // Create axios instance with defaults
 const api = axios.create({
@@ -76,6 +76,10 @@ export const loginAdmin = (data) => api.post('/admins/login', data);
 export const verifyToken = () => api.get('/auth/verify');
 export const getUserProfile = () => api.get('/users/profile');
 
+// Convenient aliases for auth functions
+export const login = loginUser;
+export const register = registerUser;
+
 // ======== Airport APIs ========
 export const getAirports = () => api.get('/airports');
 export const getAirport = (id) => api.get(`/airports/${id}`);
@@ -132,7 +136,7 @@ export const getBookingDetails = (bookingId) => {
 export const cancelBooking = (bookingId, token) => {
   try {
     validateParams({ 'Booking ID': bookingId });
-    return api.delete(`/bookings/${bookingId}`, withAuth(token));
+    return api.put(`/bookings/cancel/${bookingId}`, {}, withAuth(token));
   } catch (error) {
     console.error('Error cancelling booking:', error);
     throw error;

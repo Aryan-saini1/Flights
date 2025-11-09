@@ -2,11 +2,13 @@ from flask import Blueprint, request, jsonify
 from db import get_db_connection
 import jwt
 import os
+from functools import wraps
 
 airports_bp = Blueprint('airports', __name__, url_prefix='/api/airports')
 
 # Admin middleware
 def admin_required(f):
+    @wraps(f)
     def decorated_function(*args, **kwargs):
         auth_header = request.headers.get('Authorization')
         if not auth_header or not auth_header.startswith('Bearer '):
@@ -42,11 +44,11 @@ def get_airports():
         airports = []
         for airport in airports_data:
             airports.append({
-                "airport_id": airport[0],
-                "name": airport[1],
-                "code": airport[2],
-                "city": airport[3],
-                "country": airport[4]
+                "airport_id": airport['airport_id'],
+                "name": airport['name'],
+                "code": airport['code'],
+                "city": airport['city'],
+                "country": airport['country']
             })
             
         return jsonify({"airports": airports}), 200
@@ -94,13 +96,13 @@ def add_airport():
         
         # Create response
         airport_data = {
-            "airport_id": airport[0],
-            "name": airport[1],
-            "code": airport[2],
-            "city": airport[3],
-            "country": airport[4]
+            "airport_id": airport['airport_id'],
+            "name": airport['name'],
+            "code": airport['code'],
+            "city": airport['city'],
+            "country": airport['country']
         }
-        
+
         return jsonify({"message": "Airport added successfully", "airport": airport_data}), 201
         
     except Exception as e:
@@ -120,16 +122,16 @@ def get_airport(airport_id):
         
         if not airport:
             return jsonify({"error": "Airport not found"}), 404
-            
+
         # Create response
         airport_data = {
-            "airport_id": airport[0],
-            "name": airport[1],
-            "code": airport[2],
-            "city": airport[3],
-            "country": airport[4]
+            "airport_id": airport['airport_id'],
+            "name": airport['name'],
+            "code": airport['code'],
+            "city": airport['city'],
+            "country": airport['country']
         }
-        
+
         return jsonify({"airport": airport_data}), 200
         
     except Exception as e:

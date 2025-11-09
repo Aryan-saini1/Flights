@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getFlight, createBooking, addTicket, getAirports } from '../api';
+import { getFlight, createBooking, addTicket } from '../api';
 import { 
   Button, Typography, Container, Box, TextField, Paper, Grid, 
   FormControl, InputLabel, MenuItem, Select, Divider, Alert,
@@ -65,18 +65,14 @@ export default function Booking() {
           return;
         }
         setFlight(flightRes.data.flight);
-        
-        // Get airport details
-        const airportsRes = await getAirports();
-        console.log('Airports response:', airportsRes.data);
-        const airports = airportsRes.data.airports;
-        
+
+        // Extract airport details from flight data (already nested in the response)
         if (flightRes.data.flight) {
-          const source = airports.find(a => a.airport_id === flightRes.data.flight.source_airport_id);
-          const dest = airports.find(a => a.airport_id === flightRes.data.flight.destination_airport_id);
+          const source = flightRes.data.flight.source_airport;
+          const dest = flightRes.data.flight.destination_airport;
           console.log('Source airport:', source);
           console.log('Destination airport:', dest);
-          
+
           if (!source || !dest) {
             setError('Airport information not found');
             setLoading(false);
@@ -103,7 +99,7 @@ export default function Booking() {
     };
     
     fetchData();
-  }, [flightId, user]);
+  }, [flightId]);
   
   const generateRandomSeat = () => {
     const rows = ['A', 'B', 'C', 'D', 'E', 'F'];

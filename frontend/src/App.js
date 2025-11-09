@@ -3,12 +3,16 @@ import { Routes, Route } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@mui/material/styles';
 import CssBaseline from '@mui/material/CssBaseline';
 import './App.css';
+import { AuthProvider } from './context/AuthContext';
+import Navbar from './components/Navbar';
+import Login from './pages/Login';
+import Signup from './pages/Signup';
 import UserDashboard from './pages/UserDashboard';
 import Booking from './pages/Booking';
 import Payment from './pages/Payment';
 import TicketDetails from './pages/TicketDetails';
+import MyBookings from './pages/MyBookings';
 import ErrorBoundary from './components/ErrorBoundary';
-import Welcome from './components/Welcome';
 
 // Create a theme instance
 const theme = createTheme({
@@ -32,25 +36,24 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <div className="App">
-        <main className="main-content">
-          <ErrorBoundary>
-            <Routes>
-              <Route path="/" element={
-                <ErrorBoundary>
-                  <React.Suspense fallback={<Welcome />}>
-                    <UserDashboard />
-                  </React.Suspense>
-                </ErrorBoundary>
-              } />
-              <Route path="/welcome" element={<Welcome />} />
-              <Route path="/booking/:flightId" element={<Booking />} />
-              <Route path="/payment/:bookingId" element={<Payment />} />
-              <Route path="/ticket/:ticketId" element={<TicketDetails />} />
-            </Routes>
-          </ErrorBoundary>
-        </main>
-      </div>
+      <AuthProvider>
+        <div className="App">
+          <Navbar />
+          <main className="main-content">
+            <ErrorBoundary>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/" element={<UserDashboard />} />
+                <Route path="/booking/:flightId" element={<Booking />} />
+                <Route path="/payment/:bookingId" element={<Payment />} />
+                <Route path="/ticket/:bookingId" element={<TicketDetails />} />
+                <Route path="/my-bookings" element={<MyBookings />} />
+              </Routes>
+            </ErrorBoundary>
+          </main>
+        </div>
+      </AuthProvider>
     </ThemeProvider>
   );
 }

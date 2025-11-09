@@ -96,14 +96,18 @@ export default function Payment() {
           console.log('Ticket data:', ticket);
           setTicketDetails(ticket);
           
-          // Set default amount based on flight price
-          if (ticket.price) {
-            console.log('Setting amount from ticket price:', ticket.price);
-            setAmount(ticket.price);
+          // Get the actual flight price from the ticket response
+          // The backend returns nested structure: ticket.flight.price
+          const flightPrice = ticket.flight?.price || ticket.price;
+          
+          if (flightPrice) {
+            // Convert to number if it's a string
+            const priceAmount = typeof flightPrice === 'string' ? parseFloat(flightPrice) : flightPrice;
+            console.log('Setting amount from flight price:', priceAmount);
+            setAmount(priceAmount);
           } else {
-            // Default amount if price not available
-            console.log('Using default price of 5000');
-            setAmount(5000);
+            console.warn('No price found in ticket data, cannot determine amount');
+            setError('Unable to determine flight price. Please try again.');
           }
         } else {
           console.log('No tickets found for booking:', bookingId);

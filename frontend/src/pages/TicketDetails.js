@@ -35,7 +35,7 @@ export default function TicketDetails() {
         console.log('Ticket response:', ticketRes.data);
         
         if (!ticketRes.data.tickets || ticketRes.data.tickets.length === 0) {
-          setError('No tickets found for this booking');
+          // Don't set error - just let ticket remain null to show the centered message
           setLoading(false);
           return;
         }
@@ -50,67 +50,71 @@ export default function TicketDetails() {
         let paymentAmount = 0;
         if (paymentRes.data.payment) {
           setPayment(paymentRes.data.payment);
-          paymentAmount = paymentRes.data.payment.amount;
+          // Convert amount to number (backend returns it as string)
+          paymentAmount = parseFloat(paymentRes.data.payment.amount) || 0;
         }
         
-        // Get flight details
-        if (ticketData.flight_id) {
-          try {
-            const flightRes = await getFlight(ticketData.flight_id);
-            if (flightRes.data && flightRes.data.flight) {
-              setFlight(flightRes.data.flight);
-            }
-          } catch (flightErr) {
-            console.error('Error fetching flight details:', flightErr);
-          }
-        }
+        // Backend returns nested structure with flight object
+        const flightInfo = ticketData.flight || {};
+        const passengerInfo = ticketData.passenger || {};
+        const sourceInfo = flightInfo.source || {};
+        const destInfo = flightInfo.destination || {};
         
-        // Get airports data for source and destination
-        let sourceCode = 'DEL';
-        let sourceName = 'Delhi';
-        let destCode = 'BOM';
-        let destName = 'Mumbai';
+        // Determine the price - use payment amount first, then flight price from backend
+        const flightPrice = typeof flightInfo.price === 'string' ? parseFloat(flightInfo.price) : (flightInfo.price || 0);
+        const ticketPrice = paymentAmount > 0 ? paymentAmount : flightPrice;
+        console.log('Ticket price determined:', ticketPrice, 'from payment:', paymentAmount, 'or flight:', flightPrice);
         
-        try {
-          const airportsRes = await getAirports();
-          if (flight && airportsRes.data && airportsRes.data.airports) {
-            const airports = airportsRes.data.airports;
-            const source = airports.find(a => a.airport_id === flight.source_airport_id);
-            const dest = airports.find(a => a.airport_id === flight.destination_airport_id);
-            
-            if (source) {
-              sourceCode = source.code;
-              sourceName = source.city;
-            }
-            
-            if (dest) {
-              destCode = dest.code;
-              destName = dest.city;
-            }
-          }
-        } catch (airportErr) {
-          console.error('Error fetching airport details:', airportErr);
-        }
-        
-        // Get flight details to enrich ticket data
+        // Build enriched ticket with actual backend data
         const enrichedTicket = {
-          ...ticketData,
           booking_id: bookingId,
-          price: paymentAmount,
-          airline: flight?.airline || ticketData.airline || 'SkyWay Airlines',
-          flight_number: flight?.flight_number || ticketData.flight_number || 'SK123',
-          departure_time: flight?.departure_time || ticketData.departure_time || new Date().toISOString(),
-          arrival_time: flight?.arrival_time || ticketData.arrival_time || new Date(Date.now() + 7200000).toISOString(),
-          source_code: ticketData.source_code || sourceCode,
-          source_city: ticketData.source_city || sourceName,
-          destination_code: ticketData.destination_code || destCode,
-          destination_city: ticketData.destination_city || destName,
+          ticket_id: ticketData.ticket_id,
+          seat_number: ticketData.seat_number,
+          passenger_name: passengerInfo.name,
+          age: passengerInfo.age,
+          gender: passengerInfo.gender,
+          
+          // Flight information from backend
+          flight_id: flightInfo.flight_id,
+          airline: flightInfo.airline,
+          flight_number: flightInfo.flight_number,
+          departure_time: flightInfo.departure_time,
+          arrival_time: flightInfo.arrival_time,
+          price: ticketPrice,
+          
+          // Route information from backend
+          source_code: sourceInfo.code,
+          source_city: sourceInfo.city,
+          destination_code: destInfo.code,
+          destination_city: destInfo.city,
+          
+          // Additional details
           class: ticketData.class || 'Economy',
-          gate: ticketData.gate || 'C11'
+          gate: ticketData.gate || 'C11',
+          booking_status: ticketData.booking_status,
+          
+          // QR and Barcode
+          qr_code: ticketData.qr_code,
+          barcode: ticketData.barcode,
+          barcode_number: ticketData.barcode_number
         };
         
-        console.log('\u2705 Setting ticket data:', enrichedTicket);
+        console.log('✅ Setting ticket data:', enrichedTicket);
         setTicket(enrichedTicket);
+        
+        // Set flight data if available
+        if (flightInfo.flight_id) {
+          setFlight({
+            flight_id: flightInfo.flight_id,
+            airline: flightInfo.airline,
+            flight_number: flightInfo.flight_number,
+            departure_time: flightInfo.departure_time,
+            arrival_time: flightInfo.arrival_time,
+            price: flightInfo.price,
+            source_airport_id: sourceInfo.airport_id,
+            destination_airport_id: destInfo.airport_id
+          });
+        }
       } catch (err) {
         console.error('\u274c Error loading ticket details:', err);
         setError('Failed to load ticket details. Please try again.');

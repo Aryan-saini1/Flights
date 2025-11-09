@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS flights (
     departure_time DATETIME NOT NULL,
     arrival_time DATETIME NOT NULL,
     total_seats INT NOT NULL,
+    available_seats INT NOT NULL,
     price DECIMAL(10, 2) NOT NULL,
     FOREIGN KEY (source_airport_id) REFERENCES airports(airport_id),
     FOREIGN KEY (destination_airport_id) REFERENCES airports(airport_id),
@@ -46,7 +47,8 @@ CREATE TABLE IF NOT EXISTS bookings (
     booking_id INT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     booking_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status ENUM('CONFIRMED', 'CANCELLED') DEFAULT 'CONFIRMED',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status ENUM('CONFIRMED', 'CANCELLED', 'PENDING') DEFAULT 'CONFIRMED',
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
@@ -59,6 +61,7 @@ CREATE TABLE IF NOT EXISTS tickets (
     passenger_name VARCHAR(100) NOT NULL,
     age INT,
     gender ENUM('M', 'F', 'O'),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (booking_id) REFERENCES bookings(booking_id),
     FOREIGN KEY (flight_id) REFERENCES flights(flight_id)
 );
@@ -69,6 +72,7 @@ CREATE TABLE IF NOT EXISTS payments (
     booking_id INT NOT NULL,
     amount DECIMAL(10, 2) NOT NULL,
     payment_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     payment_method ENUM('CARD', 'UPI', 'NETBANKING', 'WALLET') NOT NULL,
     status ENUM('SUCCESS', 'FAILED', 'PENDING') DEFAULT 'SUCCESS',
     FOREIGN KEY (booking_id) REFERENCES bookings(booking_id)
@@ -90,44 +94,10 @@ INSERT INTO airports (name, code, city, country) VALUES
   ('Chennai International Airport', 'MAA', 'Chennai', 'India');
 
 -- Sample data for flights
-INSERT INTO flights (flight_number, airline, source_airport_id, destination_airport_id, departure_time, arrival_time, total_seats, price) VALUES
-  ('AI101', 'Air India', 1, 2, '2025-05-13 08:00:00', '2025-05-13 10:00:00', 180, 5000.00),
-  ('AI102', 'Air India', 2, 1, '2025-05-13 11:00:00', '2025-05-13 13:00:00', 180, 5200.00),
-  ('6E201', 'IndiGo', 1, 3, '2025-05-13 09:30:00', '2025-05-13 12:30:00', 160, 4500.00),
-  ('6E202', 'IndiGo', 3, 1, '2025-05-13 14:00:00', '2025-05-13 17:00:00', 160, 4700.00),
-  ('UK301', 'Vistara', 2, 3, '2025-05-13 10:00:00', '2025-05-13 12:00:00', 150, 6000.00),
-  ('UK302', 'Vistara', 3, 2, '2025-05-13 13:00:00', '2025-05-13 15:00:00', 150, 6200.00);
-
-
--- BOOKINGS TABLE
-CREATE TABLE IF NOT EXISTS bookings (
-    booking_id INT AUTO_INCREMENT PRIMARY KEY,
-    user_id INT NOT NULL,
-    booking_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    status ENUM('CONFIRMED', 'CANCELLED') DEFAULT 'CONFIRMED',
-    FOREIGN KEY (user_id) REFERENCES users(user_id)
-);
-
--- TICKETS TABLE
-CREATE TABLE IF NOT EXISTS tickets (
-    ticket_id INT AUTO_INCREMENT PRIMARY KEY,
-    booking_id INT NOT NULL,
-    flight_id INT NOT NULL,
-    seat_number VARCHAR(5),
-    passenger_name VARCHAR(100) NOT NULL,
-    age INT,
-    gender ENUM('M', 'F', 'O'),
-    FOREIGN KEY (booking_id) REFERENCES bookings(booking_id),
-    FOREIGN KEY (flight_id) REFERENCES flights(flight_id)
-);
-
--- PAYMENTS TABLE
-CREATE TABLE IF NOT EXISTS payments (
-    payment_id INT AUTO_INCREMENT PRIMARY KEY,
-    booking_id INT NOT NULL,
-    amount DECIMAL(10, 2) NOT NULL,
-    payment_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    payment_method ENUM('CARD', 'UPI', 'NETBANKING', 'WALLET') NOT NULL,
-    status ENUM('SUCCESS', 'FAILED', 'PENDING') DEFAULT 'SUCCESS',
-    FOREIGN KEY (booking_id) REFERENCES bookings(booking_id)
-);
+INSERT INTO flights (flight_number, airline, source_airport_id, destination_airport_id, departure_time, arrival_time, total_seats, available_seats, price) VALUES
+  ('AI101', 'Air India', 1, 2, '2025-05-13 08:00:00', '2025-05-13 10:00:00', 180, 180, 5000.00),
+  ('AI102', 'Air India', 2, 1, '2025-05-13 11:00:00', '2025-05-13 13:00:00', 180, 180, 5200.00),
+  ('6E201', 'IndiGo', 1, 3, '2025-05-13 09:30:00', '2025-05-13 12:30:00', 160, 160, 4500.00),
+  ('6E202', 'IndiGo', 3, 1, '2025-05-13 14:00:00', '2025-05-13 17:00:00', 160, 160, 4700.00),
+  ('UK301', 'Vistara', 2, 3, '2025-05-13 10:00:00', '2025-05-13 12:00:00', 150, 150, 6000.00),
+  ('UK302', 'Vistara', 3, 2, '2025-05-13 13:00:00', '2025-05-13 15:00:00', 150, 150, 6200.00);

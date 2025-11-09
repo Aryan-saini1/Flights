@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getFlights, getUserBookings, getAirports } from '../api';
+import { getFlights, getUserBookings, getAirports, cancelBooking } from '../api';
 import { 
   Button, Typography, Container, Box, Card, CardContent, Grid, TextField,
   FormControl, InputLabel, Select, MenuItem, Radio, RadioGroup,
@@ -196,6 +196,35 @@ export default function UserDashboard() {
     });
   };
 
+  // Handle cancel booking
+  const handleCancelBooking = async (bookingId) => {
+    if (!window.confirm('Are you sure you want to cancel this booking?')) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await cancelBooking(bookingId, token);
+      
+      // Update the bookings list to reflect the cancellation
+      setBookings(prevBookings => 
+        prevBookings.map(booking => 
+          booking.booking_id === bookingId 
+            ? { ...booking, status: 'CANCELLED' } 
+            : booking
+        )
+      );
+      
+      setError('');
+      alert('Booking cancelled successfully!');
+    } catch (err) {
+      console.error('Failed to cancel booking:', err);
+      setError('Failed to cancel booking. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <>
 
@@ -247,7 +276,14 @@ export default function UserDashboard() {
                   >
                     {airports.map(airport => (
                       <MenuItem key={airport.airport_id} value={airport.code}>
-                        {airport.city} ({airport.code}) - {airport.name}
+                        <Box sx={{ display: 'flex', flexDirection: 'column', py: 0.5 }}>
+                          <Typography variant="body1" fontWeight="600">
+                            {airport.city} ({airport.code})
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {airport.name}
+                          </Typography>
+                        </Box>
                       </MenuItem>
                     ))}
                   </Select>
@@ -270,7 +306,14 @@ export default function UserDashboard() {
                   >
                     {airports.map(airport => (
                       <MenuItem key={airport.airport_id} value={airport.code}>
-                        {airport.city} ({airport.code}) - {airport.name}
+                        <Box sx={{ display: 'flex', flexDirection: 'column', py: 0.5 }}>
+                          <Typography variant="body1" fontWeight="600">
+                            {airport.city} ({airport.code})
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            {airport.name}
+                          </Typography>
+                        </Box>
                       </MenuItem>
                     ))}
                   </Select>
@@ -380,7 +423,7 @@ export default function UserDashboard() {
               {flights.length > 0 ? 'Available Flights' : 'No flights found'}
               {flights.length > 0 && searchParams.source && searchParams.destination && (
                 <Typography variant="subtitle1" color="text.secondary" component="span" sx={{ ml: 2 }}>
-                  {airports.find(a => a.airport_id === parseInt(searchParams.source))?.city} to {airports.find(a => a.airport_id === parseInt(searchParams.destination))?.city}
+                  {airports.find(a => a.code === searchParams.source)?.city} to {airports.find(a => a.code === searchParams.destination)?.city}
                 </Typography>
               )}
             </Typography>
@@ -424,8 +467,8 @@ export default function UserDashboard() {
                           <Grid item xs={12} sm={3}>
                             <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(25, 118, 210, 0.05)' }}>
                               <Typography variant="h5" fontWeight="bold" color="primary">{formatTime(flight.departure_time)}</Typography>
-                              <Typography variant="body1" fontWeight="bold">{flight.source_airport_code}</Typography>
-                              <Typography variant="body2" color="text.secondary">{flight.source_city}</Typography>
+                              <Typography variant="body1" fontWeight="bold">{flight.source_airport.code}</Typography>
+                              <Typography variant="body2" color="text.secondary">{flight.source_airport.city}</Typography>
                               <Typography variant="caption">{formatDate(flight.departure_time)}</Typography>
                             </Box>
                           </Grid>
@@ -455,8 +498,8 @@ export default function UserDashboard() {
                           <Grid item xs={12} sm={3}>
                             <Box sx={{ p: 1, borderRadius: 2, bgcolor: 'rgba(25, 118, 210, 0.05)' }}>
                               <Typography variant="h5" fontWeight="bold" color="primary">{formatTime(flight.arrival_time)}</Typography>
-                              <Typography variant="body1" fontWeight="bold">{flight.dest_airport_code}</Typography>
-                              <Typography variant="body2" color="text.secondary">{flight.dest_city}</Typography>
+                              <Typography variant="body1" fontWeight="bold">{flight.destination_airport.code}</Typography>
+                              <Typography variant="body2" color="text.secondary">{flight.destination_airport.city}</Typography>
                               <Typography variant="caption">{formatDate(flight.arrival_time)}</Typography>
                             </Box>
                           </Grid>
@@ -521,18 +564,43 @@ export default function UserDashboard() {
                       <Typography variant="h6" color="primary">Booking #{booking.booking_id}</Typography>
                       <Chip 
                         label={booking.status} 
-                        color={booking.status === 'CONFIRMED' ? 'success' : 'warning'}
+                        color={
+                          booking.status === 'CONFIRMED' ? 'success' : 
+                          booking.status === 'CANCELLED' ? 'error' : 
+                          'warning'
+                        }
                         size="small"
                         sx={{ mb: 2, mt: 1 }}
                       />
-                      <Button 
-                        variant="outlined" 
-                        color="primary" 
-                        fullWidth
-                        onClick={() => navigate(`/payment/${booking.booking_id}`)}
-                      >
-                        View Details
-                      </Button>
+                      <Box sx={{ display: 'flex', gap: 1, flexDirection: 'column' }}>
+                        {booking.status !== 'CANCELLED' && (
+                          <Button 
+                            variant="outlined" 
+                            color="primary" 
+                            fullWidth
+                            onClick={() => {
+                              // Navigate to ticket page for confirmed bookings, payment page for pending
+                              if (booking.status === 'CONFIRMED') {
+                                navigate(`/ticket/${booking.booking_id}`);
+                              } else {
+                                navigate(`/payment/${booking.booking_id}`);
+                              }
+                            }}
+                          >
+                            {booking.status === 'CONFIRMED' ? 'View Ticket' : 'Complete Payment'}
+                          </Button>
+                        )}
+                        {(booking.status === 'CONFIRMED' || booking.status === 'PENDING') && (
+                          <Button 
+                            variant="outlined" 
+                            color="error" 
+                            fullWidth
+                            onClick={() => handleCancelBooking(booking.booking_id)}
+                          >
+                            Cancel Booking
+                          </Button>
+                        )}
+                      </Box>
                     </CardContent>
                   </FlightCard>
                 </Grid>

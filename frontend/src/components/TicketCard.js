@@ -67,10 +67,13 @@ const TicketCard = ({ ticket, onCancel }) => {
   };
 
   // Handle missing data with fallbacks
+  // Convert price to number if it's a string
+  const ticketPrice = typeof ticket.price === 'string' ? parseFloat(ticket.price) : ticket.price;
+  
   const safeTicket = {
     airline: ticket.airline || 'SkyWay Airlines',
     flight_number: ticket.flight_number || 'SK123',
-    price: ticket.price || 0,
+    price: ticketPrice || 0,
     source_code: ticket.source_code || 'DEL',
     source_city: ticket.source_city || 'Delhi',
     destination_code: ticket.destination_code || 'BOM',

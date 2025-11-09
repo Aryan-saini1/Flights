@@ -1,5 +1,11 @@
 Flask
 Flask-Cors
+Flask-Mail
 PyMySQL
+PyJWT
 bcrypt
 python-dotenv
+pyotp
+qrcode
+Pillow
+python-barcode

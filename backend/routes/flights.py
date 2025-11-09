@@ -32,69 +32,80 @@ def get_flights():
     try:
         source = request.args.get('source')
         destination = request.args.get('destination')
+        source_airport_id = request.args.get('source_airport_id')
+        destination_airport_id = request.args.get('destination_airport_id')
         date = request.args.get('date')
-        
+
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         query = """
-        SELECT f.flight_id, f.flight_number, f.airline, 
-               src.airport_id as source_id, src.name as source_name, src.code as source_code, src.city as source_city, 
-               dst.airport_id as dest_id, dst.name as dest_name, dst.code as dest_code, dst.city as dest_city, 
-               f.departure_time, f.arrival_time, f.total_seats, f.price
+        SELECT f.flight_id, f.flight_number, f.airline,
+               src.airport_id as source_id, src.name as source_name, src.code as source_code, src.city as source_city,
+               dst.airport_id as dest_id, dst.name as dest_name, dst.code as dest_code, dst.city as dest_city,
+               f.departure_time, f.arrival_time, f.total_seats, f.available_seats, f.price
         FROM flights f
         JOIN airports src ON f.source_airport_id = src.airport_id
         JOIN airports dst ON f.destination_airport_id = dst.airport_id
         """
-        
+
         conditions = []
         params = []
-        
+
         if source:
             conditions.append("(src.code = %s OR src.city LIKE %s)")
             params.extend([source, f"%{source}%"])
-            
+
+        if source_airport_id:
+            conditions.append("src.airport_id = %s")
+            params.append(source_airport_id)
+
         if destination:
             conditions.append("(dst.code = %s OR dst.city LIKE %s)")
             params.extend([destination, f"%{destination}%"])
-            
+
+        if destination_airport_id:
+            conditions.append("dst.airport_id = %s")
+            params.append(destination_airport_id)
+
         if date:
             conditions.append("DATE(f.departure_time) = %s")
             params.append(date)
-            
+
         if conditions:
             query += " WHERE " + " AND ".join(conditions)
-            
+
         cursor.execute(query, params)
         flights_data = cursor.fetchall()
-        
+
         cursor.close()
         conn.close()
-        
+
         flights = []
         for flight in flights_data:
             flights.append({
-                "flight_id": flight[0],
-                "flight_number": flight[1],
-                "airline": flight[2],
+                "flight_id": flight['flight_id'],
+                "flight_number": flight['flight_number'],
+                "airline": flight['airline'],
                 "source_airport": {
-                    "airport_id": flight[3],
-                    "name": flight[4],
-                    "code": flight[5],
-                    "city": flight[6]
+                    "airport_id": flight['source_id'],
+                    "name": flight['source_name'],
+                    "code": flight['source_code'],
+                    "city": flight['source_city']
                 },
                 "destination_airport": {
-                    "airport_id": flight[7],
-                    "name": flight[8],
-                    "code": flight[9],
-                    "city": flight[10]
+                    "airport_id": flight['dest_id'],
+                    "name": flight['dest_name'],
+                    "code": flight['dest_code'],
+                    "city": flight['dest_city']
                 },
-                "departure_time": flight[11].isoformat() if flight[11] else None,
-                "arrival_time": flight[12].isoformat() if flight[12] else None,
-                "total_seats": flight[13],
-                "price": float(flight[14]) if flight[14] else None
+                "departure_time": flight['departure_time'].isoformat() if flight['departure_time'] else None,
+                "arrival_time": flight['arrival_time'].isoformat() if flight['arrival_time'] else None,
+                "total_seats": flight['total_seats'],
+                "available_seats": flight['available_seats'],
+                "price": float(flight['price']) if flight['price'] else None
             })
-            
+
         return jsonify({"flights": flights}), 200
         
     except Exception as e:
@@ -105,12 +116,12 @@ def get_flight(flight_id):
     try:
         conn = get_db_connection()
         cursor = conn.cursor()
-        
+
         query = """
-        SELECT f.flight_id, f.flight_number, f.airline, 
-               src.airport_id as source_id, src.name as source_name, src.code as source_code, src.city as source_city, 
-               dst.airport_id as dest_id, dst.name as dest_name, dst.code as dest_code, dst.city as dest_city, 
-               f.departure_time, f.arrival_time, f.total_seats, f.price
+        SELECT f.flight_id, f.flight_number, f.airline,
+               src.airport_id as source_id, src.name as source_name, src.code as source_code, src.city as source_city,
+               dst.airport_id as dest_id, dst.name as dest_name, dst.code as dest_code, dst.city as dest_city,
+               f.departure_time, f.arrival_time, f.total_seats, f.available_seats, f.price
         FROM flights f
         JOIN airports src ON f.source_airport_id = src.airport_id
         JOIN airports dst ON f.destination_airport_id = dst.airport_id
@@ -125,30 +136,31 @@ def get_flight(flight_id):
         
         if not flight:
             return jsonify({"error": "Flight not found"}), 404
-            
+
         # Create response
         flight_data = {
-            "flight_id": flight[0],
-            "flight_number": flight[1],
-            "airline": flight[2],
+            "flight_id": flight['flight_id'],
+            "flight_number": flight['flight_number'],
+            "airline": flight['airline'],
             "source_airport": {
-                "airport_id": flight[3],
-                "name": flight[4],
-                "code": flight[5],
-                "city": flight[6]
+                "airport_id": flight['source_id'],
+                "name": flight['source_name'],
+                "code": flight['source_code'],
+                "city": flight['source_city']
             },
             "destination_airport": {
-                "airport_id": flight[7],
-                "name": flight[8],
-                "code": flight[9],
-                "city": flight[10]
+                "airport_id": flight['dest_id'],
+                "name": flight['dest_name'],
+                "code": flight['dest_code'],
+                "city": flight['dest_city']
             },
-            "departure_time": flight[11].isoformat() if flight[11] else None,
-            "arrival_time": flight[12].isoformat() if flight[12] else None,
-            "total_seats": flight[13],
-            "price": float(flight[14]) if flight[14] else None
+            "departure_time": flight['departure_time'].isoformat() if flight['departure_time'] else None,
+            "arrival_time": flight['arrival_time'].isoformat() if flight['arrival_time'] else None,
+            "total_seats": flight['total_seats'],
+            "available_seats": flight['available_seats'],
+            "price": float(flight['price']) if flight['price'] else None
         }
-        
+
         return jsonify({"flight": flight_data}), 200
         
     except Exception as e:
@@ -166,8 +178,9 @@ def add_flight():
         departure_time = data.get('departure_time')
         arrival_time = data.get('arrival_time')
         total_seats = data.get('total_seats')
+        available_seats = data.get('available_seats', total_seats)
         price = data.get('price')
-        
+
         if not all([flight_number, airline, source_airport_id, destination_airport_id, departure_time, arrival_time, total_seats, price]):
             return jsonify({"error": "All fields are required"}), 400
             
@@ -187,21 +200,21 @@ def add_flight():
             
         # Insert new flight
         cursor.execute(
-            """INSERT INTO flights 
-               (flight_number, airline, source_airport_id, destination_airport_id, departure_time, arrival_time, total_seats, price) 
-               VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
-            (flight_number, airline, source_airport_id, destination_airport_id, departure_time, arrival_time, total_seats, price)
+            """INSERT INTO flights
+               (flight_number, airline, source_airport_id, destination_airport_id, departure_time, arrival_time, total_seats, available_seats, price)
+               VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            (flight_number, airline, source_airport_id, destination_airport_id, departure_time, arrival_time, total_seats, available_seats, price)
         )
         conn.commit()
         
         # Get the newly created flight
         flight_id = cursor.lastrowid
-        
+
         query = """
-        SELECT f.flight_id, f.flight_number, f.airline, 
-               src.airport_id as source_id, src.name as source_name, src.code as source_code, src.city as source_city, 
-               dst.airport_id as dest_id, dst.name as dest_name, dst.code as dest_code, dst.city as dest_city, 
-               f.departure_time, f.arrival_time, f.total_seats, f.price
+        SELECT f.flight_id, f.flight_number, f.airline,
+               src.airport_id as source_id, src.name as source_name, src.code as source_code, src.city as source_city,
+               dst.airport_id as dest_id, dst.name as dest_name, dst.code as dest_code, dst.city as dest_city,
+               f.departure_time, f.arrival_time, f.total_seats, f.available_seats, f.price
         FROM flights f
         JOIN airports src ON f.source_airport_id = src.airport_id
         JOIN airports dst ON f.destination_airport_id = dst.airport_id
@@ -213,7 +226,7 @@ def add_flight():
         
         cursor.close()
         conn.close()
-        
+
         # Create response
         flight_data = {
             "flight_id": flight[0],
@@ -234,9 +247,10 @@ def add_flight():
             "departure_time": flight[11].isoformat() if flight[11] else None,
             "arrival_time": flight[12].isoformat() if flight[12] else None,
             "total_seats": flight[13],
-            "price": float(flight[14]) if flight[14] else None
+            "available_seats": flight[14],
+            "price": float(flight[15]) if flight[15] else None
         }
-        
+
         return jsonify({"message": "Flight added successfully", "flight": flight_data}), 201
         
     except Exception as e:
